@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(zip -r -q meu-projeto/scaffold.zip meu-projeto -x \"meu-projeto/scaffold.zip\")",
+      "Bash(tar -czf meu-projeto/scaffold.tar.gz --exclude='meu-projeto/scaffold.tar.gz' meu-projeto)",
+      "Bash(tar -tzf /home/crist/meu-projeto/scaffold.tar.gz)",
+      "Bash(rm *)",
+      "Bash(mkdir -p /tmp/claude-1000/-home-crist-meu-projeto/daf2b315-e890-4732-a8f9-15cef8a67224/scratchpad)",
+      "Bash(cd *)"
+    ]
+  }
+}
