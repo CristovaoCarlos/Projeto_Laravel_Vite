@@ -6,7 +6,8 @@
       "Bash(tar -tzf /home/crist/meu-projeto/scaffold.tar.gz)",
       "Bash(rm *)",
       "Bash(mkdir -p /tmp/claude-1000/-home-crist-meu-projeto/daf2b315-e890-4732-a8f9-15cef8a67224/scratchpad)",
-      "Bash(cd *)"
+      "Bash(cd *)",
+      "Bash(gzip -t /home/crist/meu-projeto/scaffold.tar.gz)"
     ]
   }
 }
