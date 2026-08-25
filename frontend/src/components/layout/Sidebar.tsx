@@ -1,12 +1,14 @@
-import { LogOut, Package, ShoppingCart, Users } from 'lucide-react'
+import { Briefcase, History, LogOut, Package, ShoppingCart, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/use-auth'
 import type { Page } from '@/Dashboard'
 
 const NAV_ITEMS: { page: Page; label: string; icon: typeof Users }[] = [
-  { page: 'clientes', label: 'Cadastrar Clientes', icon: Users },
-  { page: 'produtos', label: 'Cadastrar Produtos', icon: Package },
-  { page: 'vendas', label: 'Vendas', icon: ShoppingCart },
+  { page: 'clientes', label: 'Clientes', icon: Users },
+  { page: 'produtos', label: 'Produtos', icon: Package },
+  { page: 'pedidos', label: 'Pedidos', icon: ShoppingCart },
+  { page: 'vendedores', label: 'Vendedores', icon: Briefcase },
+  { page: 'historico', label: 'Lançar Histórico', icon: History },
 ]
 
 export function Sidebar({

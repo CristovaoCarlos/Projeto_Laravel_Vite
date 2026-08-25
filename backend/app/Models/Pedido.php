@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['cliente_id', 'total'])]
-class Venda extends Model
+#[Fillable(['cliente_id', 'tipo_pagamento', 'status', 'comprovante_pagamento', 'total'])]
+class Pedido extends Model
 {
     /**
      * @return array<string, string>
@@ -27,6 +27,6 @@ class Venda extends Model
 
     public function itens(): HasMany
     {
-        return $this->hasMany(VendaItem::class);
+        return $this->hasMany(PedidoItem::class);
     }
 }

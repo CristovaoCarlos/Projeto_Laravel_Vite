@@ -10,14 +10,13 @@ class ProdutoController extends Controller
 {
     public function index()
     {
-        return Produto::orderBy('name')->get();
+        return Produto::orderBy('description')->get();
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['required', 'string', 'max:255'],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
         ]);
@@ -33,8 +32,7 @@ class ProdutoController extends Controller
     public function update(Request $request, Produto $produto)
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['required', 'string', 'max:255'],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
         ]);

@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['name', 'description', 'price', 'stock'])]
+#[Fillable(['description', 'price', 'stock'])]
 class Produto extends Model
 {
+    use HasFactory;
+
     /**
      * @return array<string, string>
      */

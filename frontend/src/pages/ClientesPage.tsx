@@ -1,44 +1,38 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
+import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import {
-  ApiError,
-  createCliente,
-  deleteCliente,
-  listClientes,
-  updateCliente,
-  type Cliente,
-} from '@/lib/api'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { ApiError, deleteCliente, listClientes, type Cliente } from '@/lib/api'
+import { formatCep, formatPhone, normalize } from '@/lib/format'
+import { ClienteForm } from './ClienteForm'
 
-function formatPhone(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 11)
-  if (digits.length === 0) return ''
-  if (digits.length <= 2) return `(${digits}`
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+function matchesSearch(cliente: Cliente, term: string): boolean {
+  const trimmed = normalize(term.trim())
+  if (!trimmed) return true
+
+  const digits = term.replace(/\D/g, '')
+  const nameMatch = normalize(cliente.name).includes(trimmed)
+  const idMatch = String(cliente.id).includes(trimmed)
+  const phoneMatch = digits !== '' && cliente.phone.replace(/\D/g, '').includes(digits)
+
+  return nameMatch || idMatch || phoneMatch
 }
 
-function RequiredLabel({ htmlFor, children }: { htmlFor: string; children: ReactNode }) {
-  return (
-    <label
-      htmlFor={htmlFor}
-      className="flex items-center gap-2 border-l-4 border-destructive pl-2 text-sm font-medium"
-    >
-      {children}
-      <span className="text-destructive">*</span>
-    </label>
-  )
-}
-
-export function ClientesPage() {
+export function ClientesPage({ onNewPedido }: { onNewPedido?: (clienteId: number) => void }) {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [isLoadingList, setIsLoadingList] = useState(true)
   const [editing, setEditing] = useState<Cliente | null>(null)
-  const [formKey, setFormKey] = useState(0)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+  const [isCreating, setIsCreating] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Cliente | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+
+  const isFormOpen = isCreating || editing !== null
+  const filteredClientes = clientes.filter((cliente) => matchesSearch(cliente, search))
 
   function loadClientes() {
     return listClientes().then(setClientes)
@@ -48,165 +42,180 @@ export function ClientesPage() {
     loadClientes().finally(() => setIsLoadingList(false))
   }, [])
 
-  function resetForm() {
+  function closeForm() {
+    setIsCreating(false)
     setEditing(null)
-    setError(null)
-    setFieldErrors({})
-    setFormKey((k) => k + 1)
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-    setFieldErrors({})
-    setIsSubmitting(true)
-
-    const formData = new FormData(event.currentTarget)
-    const data = {
-      name: String(formData.get('name') ?? ''),
-      email: String(formData.get('email') ?? ''),
-      phone: String(formData.get('phone') ?? ''),
-      address: String(formData.get('address') ?? ''),
-    }
-
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    setDeleteError(null)
     try {
-      if (editing) {
-        await updateCliente(editing.id, data)
-      } else {
-        await createCliente(data)
-      }
-      resetForm()
+      await deleteCliente(deleteTarget.id)
+      if (editing?.id === deleteTarget.id) setEditing(null)
+      setDeleteTarget(null)
       loadClientes()
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message)
-        setFieldErrors(err.errors ?? {})
-      } else {
-        setError('Não foi possível conectar à API.')
-      }
+      setDeleteError(err instanceof ApiError ? err.message : 'Não foi possível excluir o cliente.')
     } finally {
-      setIsSubmitting(false)
+      setIsDeleting(false)
     }
-  }
-
-  async function handleDelete(cliente: Cliente) {
-    if (!confirm(`Excluir o cliente "${cliente.name}"?`)) return
-    await deleteCliente(cliente.id)
-    if (editing?.id === cliente.id) resetForm()
-    loadClientes()
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{editing ? `Editar cliente: ${editing.name}` : 'Cadastrar cliente'}</CardTitle>
-        </CardHeader>
-        <form key={editing ? `edit-${editing.id}` : `new-${formKey}`} onSubmit={handleSubmit}>
-          <CardContent className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 flex flex-col gap-1">
-              <RequiredLabel htmlFor="name">Nome</RequiredLabel>
-              <Input id="name" name="name" required defaultValue={editing?.name} />
-              {fieldErrors.name?.map((msg) => (
-                <p key={msg} className="text-xs text-destructive">
-                  {msg}
-                </p>
-              ))}
-            </div>
-            <div className="flex flex-col gap-1">
-              <RequiredLabel htmlFor="email">Email</RequiredLabel>
-              <Input id="email" name="email" type="email" required defaultValue={editing?.email ?? ''} />
-              {fieldErrors.email?.map((msg) => (
-                <p key={msg} className="text-xs text-destructive">
-                  {msg}
-                </p>
-              ))}
-            </div>
-            <div className="flex flex-col gap-1">
-              <RequiredLabel htmlFor="phone">Telefone</RequiredLabel>
+      {isFormOpen && (
+        <ClienteForm
+          cliente={editing}
+          onSaved={() => {
+            closeForm()
+            loadClientes()
+          }}
+          onCancel={closeForm}
+        />
+      )}
+
+      {!isFormOpen && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Clientes cadastrados</CardTitle>
+            <CardAction>
+              <Button size="sm" onClick={() => setIsCreating(true)}>
+                Novo Cliente
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex gap-2">
               <Input
-                id="phone"
-                name="phone"
-                required
-                placeholder="(11) 91234-5678"
-                maxLength={15}
-                defaultValue={formatPhone(editing?.phone ?? '')}
-                onChange={(e) => {
-                  e.target.value = formatPhone(e.target.value)
+                placeholder="Buscar por ID, nome ou telefone"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    setSearch(searchInput)
+                  }
                 }}
               />
-              {fieldErrors.phone?.map((msg) => (
-                <p key={msg} className="text-xs text-destructive">
-                  {msg}
-                </p>
-              ))}
+              <Button type="button" onClick={() => setSearch(searchInput)}>
+                <Search />
+                Buscar
+              </Button>
+              {search && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSearchInput('')
+                    setSearch('')
+                  }}
+                >
+                  Limpar
+                </Button>
+              )}
             </div>
-            <div className="col-span-2 flex flex-col gap-1">
-              <RequiredLabel htmlFor="address">Endereço</RequiredLabel>
-              <Input id="address" name="address" required defaultValue={editing?.address ?? ''} />
-              {fieldErrors.address?.map((msg) => (
-                <p key={msg} className="text-xs text-destructive">
-                  {msg}
-                </p>
-              ))}
-            </div>
-            {error && <p className="col-span-2 text-sm text-destructive">{error}</p>}
-          </CardContent>
-          <CardFooter className="gap-2">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar'}
-            </Button>
-            <Button type="button" variant="outline" onClick={resetForm}>
-              Limpar formulário
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Clientes cadastrados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoadingList ? (
-            <p className="text-sm text-muted-foreground">Carregando...</p>
-          ) : clientes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum cliente cadastrado.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="py-2 pr-2 font-medium">Nome</th>
-                    <th className="py-2 pr-2 font-medium">Email</th>
-                    <th className="py-2 pr-2 font-medium">Telefone</th>
-                    <th className="py-2 pr-2 font-medium">Endereço</th>
-                    <th className="py-2 pr-2 font-medium" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {clientes.map((cliente) => (
-                    <tr key={cliente.id} className="border-b last:border-0">
-                      <td className="py-2 pr-2">{cliente.name}</td>
-                      <td className="py-2 pr-2">{cliente.email ?? '—'}</td>
-                      <td className="py-2 pr-2">{cliente.phone ? formatPhone(cliente.phone) : '—'}</td>
-                      <td className="py-2 pr-2">{cliente.address ?? '—'}</td>
-                      <td className="py-2 pr-2 whitespace-nowrap">
-                        <Button size="sm" variant="outline" onClick={() => setEditing(cliente)}>
-                          Editar
-                        </Button>{' '}
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(cliente)}>
-                          Excluir
-                        </Button>
-                      </td>
+            {isLoadingList ? (
+              <p className="text-sm text-muted-foreground">Carregando...</p>
+            ) : clientes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum cliente cadastrado.</p>
+            ) : filteredClientes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum cliente encontrado para "{search}".</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="py-2 pr-2 font-medium">ID</th>
+                      <th className="py-2 pr-2 font-medium">Nome</th>
+                      <th className="py-2 pr-2 font-medium">Telefone</th>
+                      <th className="py-2 pr-2 font-medium">Email</th>
+                      <th className="py-2 pr-2 font-medium">Endereço</th>
+                      <th className="py-2 pr-2 font-medium">Localização</th>
+                      <th className="py-2 pr-2 font-medium" />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </thead>
+                  <tbody>
+                    {filteredClientes.map((cliente) => (
+                      <tr key={cliente.id} className="border-b last:border-0">
+                        <td className="py-2 pr-2 text-muted-foreground">{cliente.id}</td>
+                        <td className="py-2 pr-2">{cliente.name}</td>
+                        <td className="py-2 pr-2">{formatPhone(cliente.phone)}</td>
+                        <td className="py-2 pr-2">{cliente.email ?? '—'}</td>
+                        <td className="py-2 pr-2">
+                          {cliente.street}, {cliente.number ?? 's/n'} - {cliente.city} - {cliente.state},{' '}
+                          {formatCep(cliente.zip_code)}
+                        </td>
+                        <td className="py-2 pr-2">
+                          {cliente.location ? (
+                            <a
+                              href={`https://www.google.com/maps?q=${encodeURIComponent(cliente.location)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary underline-offset-4 hover:underline"
+                            >
+                              Ver mapa
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={!!cliente.pedidos_count}
+                            title={
+                              cliente.pedidos_count
+                                ? 'Cliente possui pedidos registrados — edição bloqueada'
+                                : undefined
+                            }
+                            onClick={() => setEditing(cliente)}
+                          >
+                            Editar
+                          </Button>{' '}
+                          {onNewPedido && (
+                            <Button size="sm" variant="outline" onClick={() => onNewPedido(cliente.id)}>
+                              Novo Pedido
+                            </Button>
+                          )}{' '}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setDeleteTarget(cliente)
+                              setDeleteError(null)
+                            }}
+                          >
+                            Excluir
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null)
+            setDeleteError(null)
+          }
+        }}
+        title="Excluir cliente"
+        description={`Tem certeza que deseja excluir o cliente "${deleteTarget?.name}"? Essa ação não pode ser desfeita.`}
+        isConfirming={isDeleting}
+        error={deleteError}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }

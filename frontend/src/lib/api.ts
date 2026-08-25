@@ -32,9 +32,10 @@ async function ensureCsrfCookie() {
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const method = options.method?.toUpperCase() ?? 'GET'
+  const isFormData = options.body instanceof FormData
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers as Record<string, string> | undefined),
   }
 
@@ -94,17 +95,28 @@ export type Cliente = {
   id: number
   name: string
   email: string | null
-  phone: string | null
-  address: string | null
+  phone: string
+  street: string
+  number: string | null
+  city: string
+  state: string
+  zip_code: string
+  location: string | null
   created_at: string
   updated_at: string
+  pedidos_count?: number
 }
 
 export type ClienteInput = {
   name: string
   email: string
   phone: string
-  address: string
+  street: string
+  number: string
+  city: string
+  state: string
+  zip_code: string
+  location: string
 }
 
 export function listClientes(): Promise<Cliente[]> {
@@ -125,8 +137,7 @@ export function deleteCliente(id: number): Promise<void> {
 
 export type Produto = {
   id: number
-  name: string
-  description: string | null
+  description: string
   price: string
   stock: number
   created_at: string
@@ -134,8 +145,7 @@ export type Produto = {
 }
 
 export type ProdutoInput = {
-  name: string
-  description: string | null
+  description: string
   price: number
   stock: number
 }
@@ -156,42 +166,129 @@ export function deleteProduto(id: number): Promise<void> {
   return apiFetch<void>(`/api/produtos/${id}`, { method: 'DELETE' })
 }
 
-export type VendaItem = {
+export type PedidoItem = {
   id: number
-  venda_id: number
+  pedido_id: number
   produto_id: number
   quantidade: number
   preco_unitario: string
   produto?: Produto
 }
 
-export type Venda = {
+export type TipoPagamento = 'dinheiro' | 'cartao' | 'pix'
+export type PedidoStatus = 'aguardando_pagamento' | 'pagamento_efetuado'
+
+export type Pedido = {
   id: number
   cliente_id: number
+  tipo_pagamento: TipoPagamento
+  status: PedidoStatus
+  comprovante_pagamento: string | null
   total: string
   created_at: string
   updated_at: string
   cliente?: Cliente
-  itens?: VendaItem[]
+  itens?: PedidoItem[]
 }
 
-export type VendaInput = {
+export type PedidoInput = {
   cliente_id: number
+  tipo_pagamento: TipoPagamento
+  status: PedidoStatus
+  comprovante_pagamento?: File | null
   itens: { produto_id: number; quantidade: number }[]
 }
 
-export function listVendas(): Promise<Venda[]> {
-  return apiFetch<Venda[]>('/api/vendas')
+export function comprovanteUrl(path: string): string {
+  return `${API_URL}/storage/${path}`
 }
 
-export function createVenda(data: VendaInput): Promise<Venda> {
-  return apiFetch<Venda>('/api/vendas', { method: 'POST', body: JSON.stringify(data) })
+function buildPedidoFormData(data: PedidoInput): FormData {
+  const formData = new FormData()
+  formData.append('cliente_id', String(data.cliente_id))
+  formData.append('tipo_pagamento', data.tipo_pagamento)
+  formData.append('status', data.status)
+  data.itens.forEach((item, index) => {
+    formData.append(`itens[${index}][produto_id]`, String(item.produto_id))
+    formData.append(`itens[${index}][quantidade]`, String(item.quantidade))
+  })
+  if (data.comprovante_pagamento) {
+    formData.append('comprovante_pagamento', data.comprovante_pagamento)
+  }
+  return formData
 }
 
-export function updateVenda(id: number, data: VendaInput): Promise<Venda> {
-  return apiFetch<Venda>(`/api/vendas/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+export function listPedidos(): Promise<Pedido[]> {
+  return apiFetch<Pedido[]>('/api/pedidos')
 }
 
-export function deleteVenda(id: number): Promise<void> {
-  return apiFetch<void>(`/api/vendas/${id}`, { method: 'DELETE' })
+export function createPedido(data: PedidoInput): Promise<Pedido> {
+  return apiFetch<Pedido>('/api/pedidos', { method: 'POST', body: buildPedidoFormData(data) })
+}
+
+export function updatePedido(id: number, data: PedidoInput): Promise<Pedido> {
+  const formData = buildPedidoFormData(data)
+  formData.append('_method', 'PUT')
+  return apiFetch<Pedido>(`/api/pedidos/${id}`, { method: 'POST', body: formData })
+}
+
+export function deletePedido(id: number): Promise<void> {
+  return apiFetch<void>(`/api/pedidos/${id}`, { method: 'DELETE' })
+}
+
+export type Vendedor = {
+  id: number
+  nome: string
+  created_at: string
+  updated_at: string
+}
+
+export type VendedorInput = {
+  nome: string
+}
+
+export function listVendedores(): Promise<Vendedor[]> {
+  return apiFetch<Vendedor[]>('/api/vendedores')
+}
+
+export function createVendedor(data: VendedorInput): Promise<Vendedor> {
+  return apiFetch<Vendedor>('/api/vendedores', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function updateVendedor(id: number, data: VendedorInput): Promise<Vendedor> {
+  return apiFetch<Vendedor>(`/api/vendedores/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+}
+
+export function deleteVendedor(id: number): Promise<void> {
+  return apiFetch<void>(`/api/vendedores/${id}`, { method: 'DELETE' })
+}
+
+export type Historico = {
+  id: number
+  cliente_nome: string
+  vendedor_id: number | null
+  valor: string
+  data_hora: string
+  created_at: string
+  updated_at: string
+  vendedor?: Vendedor
+}
+
+export type HistoricoInput = {
+  cliente_nome: string
+  vendedor_id: number
+  valor: number
+  hora: string
+}
+
+export function listHistoricos(): Promise<Historico[]> {
+  return apiFetch<Historico[]>('/api/historicos')
+}
+
+export function createHistorico(data: HistoricoInput): Promise<Historico> {
+  return apiFetch<Historico>('/api/historicos', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function deleteHistorico(id: number): Promise<void> {
+  return apiFetch<void>(`/api/historicos/${id}`, { method: 'DELETE' })
 }
