@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['venda_id', 'produto_id', 'quantidade', 'preco_unitario'])]
-class VendaItem extends Model
+#[Fillable(['pedido_id', 'produto_id', 'quantidade', 'preco_unitario'])]
+class PedidoItem extends Model
 {
     /**
      * @return array<string, string>
@@ -20,9 +20,9 @@ class VendaItem extends Model
         ];
     }
 
-    public function venda(): BelongsTo
+    public function pedido(): BelongsTo
     {
-        return $this->belongsTo(Venda::class);
+        return $this->belongsTo(Pedido::class);
     }
 
     public function produto(): BelongsTo

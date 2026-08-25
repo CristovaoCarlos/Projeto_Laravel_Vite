@@ -1,25 +1,38 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
+import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import {
-  ApiError,
-  createProduto,
-  deleteProduto,
-  listProdutos,
-  updateProduto,
-  type Produto,
-} from '@/lib/api'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { ApiError, deleteProduto, listProdutos, type Produto } from '@/lib/api'
+import { normalize } from '@/lib/format'
+import { ProdutoForm } from './ProdutoForm'
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+
+function matchesSearch(produto: Produto, term: string): boolean {
+  const trimmed = normalize(term.trim())
+  if (!trimmed) return true
+
+  const descriptionMatch = normalize(produto.description).includes(trimmed)
+  const idMatch = String(produto.id).includes(trimmed)
+
+  return descriptionMatch || idMatch
+}
 
 export function ProdutosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [isLoadingList, setIsLoadingList] = useState(true)
   const [editing, setEditing] = useState<Produto | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+  const [isCreating, setIsCreating] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Produto | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+
+  const isFormOpen = isCreating || editing !== null
+  const filteredProdutos = produtos.filter((produto) => matchesSearch(produto, search))
 
   function loadProdutos() {
     return listProdutos().then(setProdutos)
@@ -29,178 +42,143 @@ export function ProdutosPage() {
     loadProdutos().finally(() => setIsLoadingList(false))
   }, [])
 
-  function resetForm() {
+  function closeForm() {
+    setIsCreating(false)
     setEditing(null)
-    setError(null)
-    setFieldErrors({})
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError(null)
-    setFieldErrors({})
-    setIsSubmitting(true)
-
-    const formData = new FormData(event.currentTarget)
-    const data = {
-      name: String(formData.get('name') ?? ''),
-      description: (formData.get('description') as string) || null,
-      price: Number(formData.get('price')),
-      stock: Number(formData.get('stock')),
-    }
-
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    setDeleteError(null)
     try {
-      if (editing) {
-        await updateProduto(editing.id, data)
-      } else {
-        await createProduto(data)
-      }
-      resetForm()
+      await deleteProduto(deleteTarget.id)
+      if (editing?.id === deleteTarget.id) setEditing(null)
+      setDeleteTarget(null)
       loadProdutos()
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message)
-        setFieldErrors(err.errors ?? {})
-      } else {
-        setError('Não foi possível conectar à API.')
-      }
+      setDeleteError(err instanceof ApiError ? err.message : 'Não foi possível excluir o produto.')
     } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  async function handleDelete(produto: Produto) {
-    if (!confirm(`Excluir o produto "${produto.name}"?`)) return
-    try {
-      await deleteProduto(produto.id)
-      if (editing?.id === produto.id) resetForm()
-      loadProdutos()
-    } catch (err) {
-      alert(err instanceof ApiError ? err.message : 'Não foi possível excluir o produto.')
+      setIsDeleting(false)
     }
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{editing ? `Editar produto: ${editing.name}` : 'Cadastrar produto'}</CardTitle>
-        </CardHeader>
-        <form key={editing?.id ?? 'new'} onSubmit={handleSubmit}>
-          <CardContent className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 flex flex-col gap-1">
-              <label htmlFor="name" className="text-sm font-medium">
-                Nome
-              </label>
-              <Input id="name" name="name" required defaultValue={editing?.name} />
-              {fieldErrors.name?.map((msg) => (
-                <p key={msg} className="text-xs text-destructive">
-                  {msg}
-                </p>
-              ))}
-            </div>
-            <div className="col-span-2 flex flex-col gap-1">
-              <label htmlFor="description" className="text-sm font-medium">
-                Descrição
-              </label>
-              <Input id="description" name="description" defaultValue={editing?.description ?? ''} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="price" className="text-sm font-medium">
-                Preço
-              </label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                defaultValue={editing?.price}
-              />
-              {fieldErrors.price?.map((msg) => (
-                <p key={msg} className="text-xs text-destructive">
-                  {msg}
-                </p>
-              ))}
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="stock" className="text-sm font-medium">
-                Estoque
-              </label>
-              <Input
-                id="stock"
-                name="stock"
-                type="number"
-                min="0"
-                required
-                defaultValue={editing?.stock}
-              />
-              {fieldErrors.stock?.map((msg) => (
-                <p key={msg} className="text-xs text-destructive">
-                  {msg}
-                </p>
-              ))}
-            </div>
-            {error && <p className="col-span-2 text-sm text-destructive">{error}</p>}
-          </CardContent>
-          <CardFooter className="gap-2">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Salvando...' : editing ? 'Salvar alterações' : 'Cadastrar'}
-            </Button>
-            {editing && (
-              <Button type="button" variant="outline" onClick={resetForm}>
-                Cancelar
-              </Button>
-            )}
-          </CardFooter>
-        </form>
-      </Card>
+      {isFormOpen && (
+        <ProdutoForm
+          produto={editing}
+          onSaved={() => {
+            closeForm()
+            loadProdutos()
+          }}
+          onCancel={closeForm}
+        />
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Produtos cadastrados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoadingList ? (
-            <p className="text-sm text-muted-foreground">Carregando...</p>
-          ) : produtos.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum produto cadastrado.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="py-2 pr-2 font-medium">Nome</th>
-                    <th className="py-2 pr-2 font-medium">Descrição</th>
-                    <th className="py-2 pr-2 font-medium">Preço</th>
-                    <th className="py-2 pr-2 font-medium">Estoque</th>
-                    <th className="py-2 pr-2 font-medium" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {produtos.map((produto) => (
-                    <tr key={produto.id} className="border-b last:border-0">
-                      <td className="py-2 pr-2">{produto.name}</td>
-                      <td className="py-2 pr-2">{produto.description ?? '—'}</td>
-                      <td className="py-2 pr-2">{currency.format(Number(produto.price))}</td>
-                      <td className="py-2 pr-2">{produto.stock}</td>
-                      <td className="py-2 pr-2 whitespace-nowrap">
-                        <Button size="sm" variant="outline" onClick={() => setEditing(produto)}>
-                          Editar
-                        </Button>{' '}
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(produto)}>
-                          Excluir
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {!isFormOpen && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Produtos cadastrados</CardTitle>
+            <CardAction>
+              <Button size="sm" onClick={() => setIsCreating(true)}>
+                Novo Produto
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Buscar por ID ou descrição"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    setSearch(searchInput)
+                  }
+                }}
+              />
+              <Button type="button" onClick={() => setSearch(searchInput)}>
+                <Search />
+                Buscar
+              </Button>
+              {search && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSearchInput('')
+                    setSearch('')
+                  }}
+                >
+                  Limpar
+                </Button>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {isLoadingList ? (
+              <p className="text-sm text-muted-foreground">Carregando...</p>
+            ) : produtos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum produto cadastrado.</p>
+            ) : filteredProdutos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum produto encontrado para "{search}".</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="py-2 pr-2 font-medium">Descrição</th>
+                      <th className="py-2 pr-2 font-medium">Preço</th>
+                      <th className="py-2 pr-2 font-medium">Estoque</th>
+                      <th className="py-2 pr-2 font-medium" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProdutos.map((produto) => (
+                      <tr key={produto.id} className="border-b last:border-0">
+                        <td className="py-2 pr-2">{produto.description}</td>
+                        <td className="py-2 pr-2">{currency.format(Number(produto.price))}</td>
+                        <td className="py-2 pr-2">{produto.stock}</td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          <Button size="sm" variant="outline" onClick={() => setEditing(produto)}>
+                            Editar
+                          </Button>{' '}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setDeleteTarget(produto)
+                              setDeleteError(null)
+                            }}
+                          >
+                            Excluir
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null)
+            setDeleteError(null)
+          }
+        }}
+        title="Excluir produto"
+        description={`Tem certeza que deseja excluir o produto "${deleteTarget?.description}"? Essa ação não pode ser desfeita.`}
+        isConfirming={isDeleting}
+        error={deleteError}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }
