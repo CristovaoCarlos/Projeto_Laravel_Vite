@@ -12,8 +12,13 @@ COPY . .
 
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage
+# Usuário com o mesmo UID/GID do seu usuário na WSL (crist), usado
+# tanto pelo php-fpm quanto pelos comandos via "docker compose exec"
+RUN groupadd -g 1000 appuser \
+    && useradd -u 1000 -g appuser -m -s /bin/bash appuser \
+    && chown -R appuser:appuser /var/www \
+    && chmod -R 755 /var/www/storage /var/www/bootstrap/cache \
+    && sed -i "s/user = www-data/user = appuser/" /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i "s/group = www-data/group = appuser/" /usr/local/etc/php-fpm.d/www.conf
 
 EXPOSE 9000
-CMD ["php-fpm"]
