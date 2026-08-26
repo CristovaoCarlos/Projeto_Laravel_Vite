@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { User } from './api'
+import type { TipoUsuario, User } from './api'
 
 export type AuthContextValue = {
   user: User | null
@@ -10,6 +10,7 @@ export type AuthContextValue = {
     email: string
     password: string
     password_confirmation: string
+    tipo_usuario: TipoUsuario
   }) => Promise<void>
   logout: () => Promise<void>
 }

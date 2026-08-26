@@ -199,7 +199,9 @@ export function LancarHistoricoPage() {
                       <td className="py-2 pr-2">{historico.cliente_nome}</td>
                       <td className="py-2 pr-2">{historico.vendedor?.nome ?? '—'}</td>
                       <td className="py-2 pr-2">{currency.format(Number(historico.valor))}</td>
-                      <td className="py-2 pr-2">{dateTimeFormat.format(new Date(historico.data_hora))}</td>
+                      <td className="py-2 pr-2 whitespace-nowrap">
+                        {dateTimeFormat.format(new Date(historico.data_hora))}
+                      </td>
                       <td className="py-2 pr-2 whitespace-nowrap">
                         <Button
                           size="sm"

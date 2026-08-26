@@ -1,15 +1,8 @@
-import { Briefcase, History, LogOut, Package, ShoppingCart, Users } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/use-auth'
+import { NAV_ITEMS } from './nav-items'
 import type { Page } from '@/Dashboard'
-
-const NAV_ITEMS: { page: Page; label: string; icon: typeof Users }[] = [
-  { page: 'clientes', label: 'Clientes', icon: Users },
-  { page: 'produtos', label: 'Produtos', icon: Package },
-  { page: 'pedidos', label: 'Pedidos', icon: ShoppingCart },
-  { page: 'vendedores', label: 'Vendedores', icon: Briefcase },
-  { page: 'historico', label: 'Lançar Histórico', icon: History },
-]
 
 export function Sidebar({
   active,
@@ -19,16 +12,28 @@ export function Sidebar({
   onNavigate: (page: Page) => void
 }) {
   const { user, logout } = useAuth()
+  const visibleItems = NAV_ITEMS.filter((item) => user && item.tipos.includes(user.tipo_usuario))
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col gap-4 border-r border-border bg-card p-4">
-      <div className="px-2">
-        <p className="text-sm font-medium">{user?.name}</p>
-        <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-4 border-r border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-2 px-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{user?.name}</p>
+          <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="shrink-0 text-destructive"
+          title="Sair"
+          onClick={logout}
+        >
+          <LogOut />
+        </Button>
       </div>
 
-      <nav className="flex flex-col gap-1">
-        {NAV_ITEMS.map(({ page, label, icon: Icon }) => (
+      <nav className="flex flex-col gap-1 overflow-y-auto">
+        {visibleItems.map(({ page, label, icon: Icon }) => (
           <Button
             key={page}
             variant={active === page ? 'secondary' : 'ghost'}
@@ -40,11 +45,6 @@ export function Sidebar({
           </Button>
         ))}
       </nav>
-
-      <Button variant="ghost" className="mt-auto justify-start text-destructive" onClick={logout}>
-        <LogOut />
-        Sair
-      </Button>
     </aside>
   )
 }

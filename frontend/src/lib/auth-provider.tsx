@@ -1,5 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ApiError, getUser, login as apiLogin, logout as apiLogout, register as apiRegister, type User } from './api'
+import {
+  ApiError,
+  getUser,
+  login as apiLogin,
+  logout as apiLogout,
+  register as apiRegister,
+  type TipoUsuario,
+  type User,
+} from './api'
 import { AuthContext } from './auth-context'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -27,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string
     password: string
     password_confirmation: string
+    tipo_usuario: TipoUsuario
   }) {
     setUser(await apiRegister(data))
   }

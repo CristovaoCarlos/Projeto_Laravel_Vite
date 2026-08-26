@@ -1,9 +1,12 @@
 const API_URL = import.meta.env.VITE_API_URL as string
 
+export type TipoUsuario = 'superadmin' | 'vendedor' | 'estoquista' | 'historico'
+
 export type User = {
   id: number
   name: string
   email: string
+  tipo_usuario: TipoUsuario
   email_verified_at: string | null
   created_at: string
   updated_at: string
@@ -75,6 +78,7 @@ export function register(data: {
   email: string
   password: string
   password_confirmation: string
+  tipo_usuario: TipoUsuario
 }): Promise<User> {
   return apiFetch<User>('/api/register', { method: 'POST', body: JSON.stringify(data) })
 }
@@ -291,4 +295,27 @@ export function createHistorico(data: HistoricoInput): Promise<Historico> {
 
 export function deleteHistorico(id: number): Promise<void> {
   return apiFetch<void>(`/api/historicos/${id}`, { method: 'DELETE' })
+}
+
+export type UsuarioInput = {
+  name: string
+  email: string
+  password?: string
+  tipo_usuario: TipoUsuario
+}
+
+export function listUsuarios(): Promise<User[]> {
+  return apiFetch<User[]>('/api/usuarios')
+}
+
+export function createUsuario(data: UsuarioInput): Promise<User> {
+  return apiFetch<User>('/api/usuarios', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function updateUsuario(id: number, data: UsuarioInput): Promise<User> {
+  return apiFetch<User>(`/api/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+}
+
+export function deleteUsuario(id: number): Promise<void> {
+  return apiFetch<void>(`/api/usuarios/${id}`, { method: 'DELETE' })
 }

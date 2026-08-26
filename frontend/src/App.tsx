@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { ApiError } from '@/lib/api'
+import { ApiError, type TipoUsuario } from '@/lib/api'
 import { useAuth } from '@/lib/use-auth'
 import { Dashboard } from '@/Dashboard'
 
@@ -32,6 +32,7 @@ function AuthForm() {
           email,
           password,
           password_confirmation: String(formData.get('password_confirmation') ?? ''),
+          tipo_usuario: String(formData.get('tipo_usuario') ?? '') as TipoUsuario,
         })
       }
     } catch (err) {
@@ -112,6 +113,31 @@ function AuthForm() {
                 required
                 autoComplete="new-password"
               />
+            </div>
+          )}
+
+          {!isLogin && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="tipo_usuario" className="text-sm font-medium">
+                Tipo de usuário
+              </label>
+              <select
+                id="tipo_usuario"
+                name="tipo_usuario"
+                required
+                className="h-8 rounded-lg border border-border bg-background px-2.5 text-sm"
+                defaultValue="vendedor"
+              >
+                <option value="superadmin">Superadmin</option>
+                <option value="vendedor">Vendedor</option>
+                <option value="estoquista">Estoquista</option>
+                <option value="historico">Histórico</option>
+              </select>
+              {fieldErrors.tipo_usuario?.map((msg) => (
+                <p key={msg} className="text-xs text-destructive">
+                  {msg}
+                </p>
+              ))}
             </div>
           )}
 
