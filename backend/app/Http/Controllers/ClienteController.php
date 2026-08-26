@@ -26,6 +26,7 @@ class ClienteController extends Controller
             'state' => ['required', 'string', 'max:255'],
             'zip_code' => ['required', 'string', 'regex:/^\d{5}-\d{3}$/'],
             'location' => ['nullable', 'string', 'regex:/^-?\d{1,3}(\.\d+)?,\s*-?\d{1,3}(\.\d+)?$/'],
+            'vendedor_id' => ['nullable', 'sometimes', 'exists:vendedores,id'],
         ]);
 
         return response()->json(Cliente::create($data), 201);
@@ -54,6 +55,7 @@ class ClienteController extends Controller
             'state' => ['required', 'string', 'max:255'],
             'zip_code' => ['required', 'string', 'regex:/^\d{5}-\d{3}$/'],
             'location' => ['nullable', 'string', 'regex:/^-?\d{1,3}(\.\d+)?,\s*-?\d{1,3}(\.\d+)?$/'],
+            'vendedor_id' => ['nullable', 'sometimes', 'exists:vendedores,id'],
         ]);
 
         $cliente->update($data);

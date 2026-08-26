@@ -31,6 +31,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('tipo_usuario:historico')->group(function () {
         Route::apiResource('historicos', HistoricoController::class)->only(['index', 'store', 'destroy']);
+    });
+
+    Route::middleware('tipo_usuario:historico,vendedor')->group(function () {
         Route::get('/vendedores', [VendedorController::class, 'index']);
     });
 

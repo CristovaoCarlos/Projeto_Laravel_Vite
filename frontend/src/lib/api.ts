@@ -97,6 +97,7 @@ export function getUser(): Promise<User> {
 
 export type Cliente = {
   id: number
+  vendedor_id: number | null
   name: string
   email: string | null
   phone: string
@@ -112,6 +113,7 @@ export type Cliente = {
 }
 
 export type ClienteInput = {
+  vendedor_id: number | null
   name: string
   email: string
   phone: string
@@ -185,6 +187,7 @@ export type PedidoStatus = 'aguardando_pagamento' | 'pagamento_efetuado'
 export type Pedido = {
   id: number
   cliente_id: number
+  vendedor_id: number
   tipo_pagamento: TipoPagamento
   status: PedidoStatus
   comprovante_pagamento: string | null
@@ -197,6 +200,7 @@ export type Pedido = {
 
 export type PedidoInput = {
   cliente_id: number
+  vendedor_id: number
   tipo_pagamento: TipoPagamento
   status: PedidoStatus
   comprovante_pagamento?: File | null
@@ -210,6 +214,7 @@ export function comprovanteUrl(path: string): string {
 function buildPedidoFormData(data: PedidoInput): FormData {
   const formData = new FormData()
   formData.append('cliente_id', String(data.cliente_id))
+  formData.append('vendedor_id', String(data.vendedor_id))
   formData.append('tipo_pagamento', data.tipo_pagamento)
   formData.append('status', data.status)
   data.itens.forEach((item, index) => {

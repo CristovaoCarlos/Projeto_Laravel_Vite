@@ -9,11 +9,13 @@ import {
   listClientes,
   listPedidos,
   listProdutos,
+  listVendedores,
   type Cliente,
   type Pedido,
   type PedidoStatus,
   type Produto,
   type TipoPagamento,
+  type Vendedor,
 } from '@/lib/api'
 import { PedidoForm } from './PedidoForm'
 
@@ -39,6 +41,7 @@ export function PedidosPage({
   onConsumeInitialClienteId?: () => void
 }) {
   const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [isLoadingList, setIsLoadingList] = useState(true)
@@ -51,10 +54,11 @@ export function PedidosPage({
   const isFormOpen = isCreating || editing !== null || initialClienteId != null
 
   function loadAll() {
-    return Promise.all([listPedidos(), listClientes(), listProdutos()]).then(([v, c, p]) => {
+    return Promise.all([listPedidos(), listClientes(), listProdutos(), listVendedores()]).then(([v, c, p, ve]) => {
       setPedidos(v)
       setClientes(c)
       setProdutos(p)
+      setVendedores(ve)
     })
   }
 
@@ -89,6 +93,7 @@ export function PedidosPage({
       {isFormOpen && (
         <PedidoForm
           pedido={editing}
+          vendedores={vendedores}
           clientes={clientes}
           produtos={produtos}
           initialClienteId={editing ? undefined : (initialClienteId ?? undefined)}

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['cliente_id', 'tipo_pagamento', 'status', 'comprovante_pagamento', 'total'])]
+#[Fillable(['cliente_id', 'vendedor_id', 'tipo_pagamento', 'status', 'comprovante_pagamento', 'total'])]
 class Pedido extends Model
 {
     /**

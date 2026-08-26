@@ -2,7 +2,7 @@ import { useRef, useState, type FocusEvent, type FormEvent, type ReactNode } fro
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { ApiError, createCliente, updateCliente, type Cliente } from '@/lib/api'
+import { ApiError, createCliente, updateCliente, type Cliente, type Vendedor } from '@/lib/api'
 import { formatCep, formatPhone } from '@/lib/format'
 import { lookupCep } from '@/lib/viacep'
 
@@ -20,10 +20,12 @@ function RequiredLabel({ htmlFor, children }: { htmlFor: string; children: React
 
 export function ClienteForm({
   cliente,
+  vendedor,
   onSaved,
   onCancel,
 }: {
   cliente: Cliente | null
+  vendedor: Vendedor[]
   onSaved: () => void
   onCancel?: () => void
 }) {
@@ -36,6 +38,7 @@ export function ClienteForm({
   const streetRef = useRef<HTMLInputElement>(null)
   const cityRef = useRef<HTMLInputElement>(null)
   const stateRef = useRef<HTMLInputElement>(null)
+  const [vendedorId, setVendedorId] = useState(cliente?.vendedor_id ? String(cliente.vendedor_id) : '')
 
   function handleClear() {
     setError(null)
@@ -70,6 +73,12 @@ export function ClienteForm({
     event.preventDefault()
     setError(null)
     setFieldErrors({})
+
+    if (!vendedorId) {
+      setError('Selecione um vendedor.')
+      return
+    }
+
     setIsSubmitting(true)
 
     const formData = new FormData(event.currentTarget)
@@ -83,6 +92,7 @@ export function ClienteForm({
       state: String(formData.get('state') ?? ''),
       zip_code: String(formData.get('zip_code') ?? ''),
       location: String(formData.get('location') ?? ''),
+      vendedor_id: Number(vendedorId),
     }
 
     try {
@@ -234,6 +244,25 @@ export function ClienteForm({
                 {msg}
               </p>
             ))}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="vendedor_id" className="text-sm font-medium">
+              Vendedor
+            </label>
+            <select
+              id="vendedor_id"
+              className="h-8 rounded-lg border border-border bg-background px-2.5 text-sm"
+              value={vendedorId}
+              onChange={(e) => setVendedorId(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {vendedor.map((vendedor) => (
+                <option key={vendedor.id} value={vendedor.id}>
+                  {vendedor.nome}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && <p className="col-span-2 text-sm text-destructive">{error}</p>}

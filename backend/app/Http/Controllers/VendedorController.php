@@ -44,7 +44,7 @@ class VendedorController extends Controller
             $vendedor->delete();
         } catch (QueryException $e) {
             return response()->json([
-                'message' => 'Não é possível excluir um vendedor que possui lançamentos registrados.',
+                'message' => 'Não é possível excluir um vendedor que possui clientes ou lançamentos registrados.',
             ], 409);
         }
 
