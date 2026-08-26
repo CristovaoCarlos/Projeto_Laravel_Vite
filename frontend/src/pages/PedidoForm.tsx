@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import {
   updatePedido,
   type Cliente,
   type Pedido,
+  type Vendedor,
   type PedidoStatus,
   type Produto,
   type TipoPagamento,
@@ -31,6 +32,7 @@ type ItemForm = { produto_id: number; quantidade: number }
 
 export function PedidoForm({
   pedido,
+  vendedores,
   clientes,
   produtos,
   initialClienteId,
@@ -38,6 +40,7 @@ export function PedidoForm({
   onCancel,
 }: {
   pedido: Pedido | null
+  vendedores: Vendedor[]
   clientes: Cliente[]
   produtos: Produto[]
   initialClienteId?: number
@@ -47,6 +50,14 @@ export function PedidoForm({
   const [clienteId, setClienteId] = useState(
     pedido ? String(pedido.cliente_id) : initialClienteId ? String(initialClienteId) : ''
   )
+  const [vendedorId, setVendedorId] = useState(
+    pedido?.vendedor_id ? String(pedido.vendedor_id) : ''
+  )
+  useEffect(()=> {
+    if(pedido) return
+    const cliente = clientes.find((c)=> c.id === Number(clienteId))
+    setVendedorId(cliente?.vendedor_id ? String(cliente.vendedor_id): '')
+  } , [clienteId, clientes, pedido])
   const [tipoPagamento, setTipoPagamento] = useState<TipoPagamento>(pedido?.tipo_pagamento ?? 'dinheiro')
   const [status, setStatus] = useState<PedidoStatus>(pedido?.status ?? 'aguardando_pagamento')
   const [comprovante, setComprovante] = useState<File | null>(null)
@@ -93,6 +104,7 @@ export function PedidoForm({
     setIsSubmitting(true)
     const data = {
       cliente_id: Number(clienteId),
+      vendedor_id: Number(vendedorId),
       tipo_pagamento: tipoPagamento,
       status,
       comprovante_pagamento: comprovante,
@@ -138,6 +150,26 @@ export function PedidoForm({
               ))}
             </select>
           </div>
+          <div className="flex flex-col gap-1">
+          <label htmlFor="vendedor_id" className="text-sm font-medium">
+            Vendedor
+          </label>
+          <select
+            id="vendedor_id"
+            className="h-8 rounded-lg border border-border bg-background px-2.5 text-sm"
+            value={vendedorId}
+            onChange={(e) => setVendedorId(e.target.value)}
+          >
+            <option value="">Selecione...</option>
+            {vendedores.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+
+          
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">

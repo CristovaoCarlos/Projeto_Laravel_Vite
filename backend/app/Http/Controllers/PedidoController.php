@@ -24,6 +24,7 @@ class PedidoController extends Controller
         $pedido = DB::transaction(function () use ($data) {
             $pedido = Pedido::create([
                 'cliente_id' => $data['cliente_id'],
+                'vendedor_id' => $data['vendedor_id'],
                 'tipo_pagamento' => $data['tipo_pagamento'],
                 'status' => $data['status'] ?? 'aguardando_pagamento',
                 'total' => 0,
@@ -56,6 +57,7 @@ class PedidoController extends Controller
 
             $pedido->update([
                 'cliente_id' => $data['cliente_id'],
+                'vendedor_id' => $data['vendedor_id'],
                 'tipo_pagamento' => $data['tipo_pagamento'],
                 'status' => $data['status'] ?? $pedido->status,
             ]);
@@ -89,6 +91,7 @@ class PedidoController extends Controller
     {
         return $request->validate([
             'cliente_id' => ['required', 'exists:clientes,id'],
+            'vendedor_id' => ['required', 'exists:vendedores,id'],
             'tipo_pagamento' => ['required', Rule::in(['dinheiro', 'cartao', 'pix'])],
             'status' => ['nullable', Rule::in(['aguardando_pagamento', 'pagamento_efetuado'])],
             'comprovante_pagamento' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
