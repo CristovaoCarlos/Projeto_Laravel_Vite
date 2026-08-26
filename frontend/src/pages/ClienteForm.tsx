@@ -38,7 +38,7 @@ export function ClienteForm({
   const streetRef = useRef<HTMLInputElement>(null)
   const cityRef = useRef<HTMLInputElement>(null)
   const stateRef = useRef<HTMLInputElement>(null)
-  const [vendedorId, setVendedorId] = useState(cliente?.id_vendedor ? String(cliente.id_vendedor) : '')
+  const [vendedorId, setVendedorId] = useState(cliente?.vendedor_id ? String(cliente.vendedor_id) : '')
 
   function handleClear() {
     setError(null)
@@ -92,7 +92,7 @@ export function ClienteForm({
       state: String(formData.get('state') ?? ''),
       zip_code: String(formData.get('zip_code') ?? ''),
       location: String(formData.get('location') ?? ''),
-      id_vendedor: Number(vendedorId),
+      vendedor_id: Number(vendedorId),
     }
 
     try {
