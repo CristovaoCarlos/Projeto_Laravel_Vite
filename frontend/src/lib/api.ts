@@ -97,6 +97,7 @@ export function getUser(): Promise<User> {
 
 export type Cliente = {
   id: number
+  id_vendedor: number | null
   name: string
   email: string | null
   phone: string
@@ -112,6 +113,7 @@ export type Cliente = {
 }
 
 export type ClienteInput = {
+  id_vendedor: number | null
   name: string
   email: string
   phone: string

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { ApiError, deleteCliente, listClientes, type Cliente } from '@/lib/api'
+import { ApiError, deleteCliente, listClientes, listVendedores, type Cliente, type Vendedor } from '@/lib/api'
 import { formatCep, formatPhone, normalize } from '@/lib/format'
 import { ClienteForm } from './ClienteForm'
 
@@ -22,6 +22,7 @@ function matchesSearch(cliente: Cliente, term: string): boolean {
 
 export function ClientesPage({ onNewPedido }: { onNewPedido?: (clienteId: number) => void }) {
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [isLoadingList, setIsLoadingList] = useState(true)
   const [editing, setEditing] = useState<Cliente | null>(null)
   const [isCreating, setIsCreating] = useState(false)
@@ -39,7 +40,7 @@ export function ClientesPage({ onNewPedido }: { onNewPedido?: (clienteId: number
   }
 
   useEffect(() => {
-    loadClientes().finally(() => setIsLoadingList(false))
+    Promise.all([loadClientes(), listVendedores().then(setVendedores)]).finally(() => setIsLoadingList(false))
   }, [])
 
   function closeForm() {
@@ -68,6 +69,7 @@ export function ClientesPage({ onNewPedido }: { onNewPedido?: (clienteId: number
       {isFormOpen && (
         <ClienteForm
           cliente={editing}
+          vendedor={vendedores}
           onSaved={() => {
             closeForm()
             loadClientes()
