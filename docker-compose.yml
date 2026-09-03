@@ -49,6 +49,18 @@ services:
     networks:
       - app-network
 
+  frontend-vue:
+    build:
+      context: ./frontend-vue
+    container_name: vue_frontend
+    volumes:
+      - ./frontend-vue:/app
+      - /app/node_modules
+    ports:
+      - "5175:5175"
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
